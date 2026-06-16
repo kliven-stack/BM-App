@@ -8,6 +8,7 @@ interface TopbarProps {
   userName: string;
   userEmail: string;
   onMenu: () => void;
+  onSearch: () => void;
   notifications?: NotificationItem[];
 }
 
@@ -21,6 +22,7 @@ export default function Topbar({
   userName,
   userEmail,
   onMenu,
+  onSearch,
   notifications = [],
 }: TopbarProps) {
   return (
@@ -33,17 +35,26 @@ export default function Topbar({
         <Icon name="menu" size={18} />
       </button>
 
-      {/* Search */}
-      <div className="relative hidden flex-1 sm:block">
-        <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
-          <Icon name="search" size={17} />
-        </span>
-        <input
-          type="search"
-          placeholder="Search clients, websites, tickets…"
-          className="w-full max-w-md rounded-xl border border-gray-200 bg-gray-50 py-2 pl-9 pr-3 text-sm outline-none placeholder:text-gray-400 focus:border-brand-400 focus:bg-white focus:ring-1 focus:ring-brand-400 dark:border-white/10 dark:bg-white/5 dark:text-gray-100 dark:focus:bg-white/10"
-        />
-      </div>
+      {/* Search (opens the ⌘K command palette) */}
+      <button
+        onClick={onSearch}
+        className="hidden w-full max-w-md items-center gap-2 rounded-xl border border-gray-200 bg-gray-50 py-2 pl-3 pr-2 text-sm text-gray-400 hover:bg-gray-100 dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10 sm:flex"
+      >
+        <Icon name="search" size={17} />
+        <span>Search clients, websites, tickets…</span>
+        <kbd className="ml-auto rounded border border-gray-300 px-1.5 py-0.5 text-[10px] font-medium text-gray-400 dark:border-white/15">
+          ⌘K
+        </kbd>
+      </button>
+
+      {/* Mobile search icon */}
+      <button
+        onClick={onSearch}
+        className="rounded-lg border border-gray-200 p-2 text-gray-500 hover:bg-gray-50 dark:border-white/15 dark:text-gray-300 dark:hover:bg-white/10 sm:hidden"
+        aria-label="Search"
+      >
+        <Icon name="search" size={18} />
+      </button>
 
       <div className="ml-auto flex items-center gap-2 sm:gap-3">
         <ThemeToggle />

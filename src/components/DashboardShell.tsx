@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Sidebar, { type NavGroup } from "./Sidebar";
 import Topbar from "./Topbar";
+import CommandPalette from "./CommandPalette";
 import type { NotificationItem } from "./NotificationBell";
 
 interface DashboardShellProps {
@@ -26,6 +27,7 @@ export default function DashboardShell({
 }: DashboardShellProps) {
   const [open, setOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
+  const [paletteOpen, setPaletteOpen] = useState(false);
 
   // Restore the persisted collapse preference on mount.
   useEffect(() => {
@@ -64,10 +66,17 @@ export default function DashboardShell({
           userName={userName}
           userEmail={userEmail}
           onMenu={() => setOpen(true)}
+          onSearch={() => setPaletteOpen(true)}
           notifications={notifications}
         />
         <main className="flex-1 px-4 py-6 sm:px-6 lg:px-8">{children}</main>
       </div>
+
+      <CommandPalette
+        open={paletteOpen}
+        setOpen={setPaletteOpen}
+        groups={groups}
+      />
     </div>
   );
 }
