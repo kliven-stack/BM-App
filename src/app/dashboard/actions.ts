@@ -39,13 +39,37 @@ export async function createTicketAction(
   }
 
   // RLS check (client_id = current_client_id()) re-validates this insert.
-  const { error } = await supabase.from("tickets").insert({
-    client_id: client.id,
-    subject: parsed.data.subject,
-    message: parsed.data.message,
-    status: "open",
-  });
+  const { data: ticket, error } = await supabase
+    .from("tickets")
+    .insert({
+      client_id: client.id,
+      subject: parsed.data.subject,
+      message: parsed.data.message,
+      status: "open",
+    })
+    .select("id")
+    .single();
   if (error) return { error: error.message };
+
+  // Optional attachment uploaded with the ticket → stored as the first reply.
+  const file = formData.get("file") as File | null;
+  if (ticket && file && file.size > 0) {
+    try {
+      const attachment = await uploadTicketAttachment(ticket.id, file);
+      if (attachment) {
+        await supabase.from("ticket_messages").insert({
+          ticket_id: ticket.id,
+          author_id: profile.id,
+          author_role: "client",
+          body: "(attachment)",
+          attachment_path: attachment.path,
+          attachment_name: attachment.name,
+        });
+      }
+    } catch {
+      // Ticket already created — don't fail the whole submission on upload error.
+    }
+  }
 
   // Notify the team (no-op without ADMIN_NOTIFY_EMAIL / Resend key).
   const notify = process.env.ADMIN_NOTIFY_EMAIL;
