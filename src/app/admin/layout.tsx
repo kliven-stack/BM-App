@@ -27,7 +27,10 @@ const GROUPS: NavGroup[] = [
   },
   {
     label: "Account",
-    items: [{ href: "/admin/settings", label: "Settings", icon: "settings" }],
+    items: [
+      { href: "/admin/activity", label: "Activity", icon: "bell" },
+      { href: "/admin/settings", label: "Settings", icon: "settings" },
+    ],
   },
 ];
 

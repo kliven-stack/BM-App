@@ -61,14 +61,27 @@ export default async function ClientTicketsPage() {
                 <li key={t.id} className="card">
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <p className="font-semibold text-gray-900">{t.subject}</p>
+                      <a
+                        href={`/dashboard/tickets/${t.id}`}
+                        className="font-semibold text-gray-900 hover:text-brand-600 hover:underline"
+                      >
+                        {t.subject}
+                      </a>
                       <p className="mt-1 text-sm text-gray-600">{t.message}</p>
                     </div>
                     <StatusBadge status={t.status} />
                   </div>
-                  <p className="mt-3 text-xs text-gray-400">
-                    Opened {formatDate(t.created_at)}
-                  </p>
+                  <div className="mt-3 flex items-center justify-between">
+                    <p className="text-xs text-gray-400">
+                      Opened {formatDate(t.created_at)}
+                    </p>
+                    <a
+                      href={`/dashboard/tickets/${t.id}`}
+                      className="text-xs font-medium text-brand-600 hover:underline"
+                    >
+                      View / reply →
+                    </a>
+                  </div>
                 </li>
               ))}
             </ul>

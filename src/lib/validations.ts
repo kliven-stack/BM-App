@@ -73,3 +73,9 @@ export const ticketStatusSchema = z.object({
   id: z.string().uuid(),
   status: z.enum(["open", "in_progress", "closed"]),
 });
+
+export const ticketReplySchema = z.object({
+  ticket_id: z.string().uuid(),
+  body: z.string().min(1, "Message is required").max(5000),
+});
+export type TicketReplyInput = z.infer<typeof ticketReplySchema>;

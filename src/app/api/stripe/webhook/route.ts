@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import type Stripe from "stripe";
 import { getStripe } from "@/lib/stripe";
 import { createAdminClient } from "@/lib/supabase/server";
+import { sendEmail, emailLayout } from "@/lib/email";
 
 // Stripe must be able to send the raw, unparsed body for signature verification.
 export const runtime = "nodejs";
@@ -39,6 +40,19 @@ export async function POST(request: Request) {
       case "invoice.payment_failed": {
         const invoice = event.data.object as Stripe.Invoice;
         await upsertInvoice(supabase, invoice);
+        if (event.type === "invoice.payment_failed") {
+          const to = invoice.customer_email ?? null;
+          if (to) {
+            await sendEmail({
+              to,
+              subject: "Payment failed — action needed",
+              html: emailLayout(
+                "We couldn't process your payment",
+                `<p>Your recent payment didn't go through. Please update your payment method in the billing portal to keep your subscription active.</p>`,
+              ),
+            });
+          }
+        }
         break;
       }
 

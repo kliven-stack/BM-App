@@ -2,6 +2,7 @@
 
 import { getStripe } from "@/lib/stripe";
 import { createAdminClient } from "@/lib/supabase/server";
+import { sendEmail, emailLayout } from "@/lib/email";
 
 type Result = { ok?: boolean; error?: string };
 
@@ -63,6 +64,15 @@ export async function completeSignup(
   if (!existing) {
     await admin.from("clients").insert({ name, email });
   }
+
+  await sendEmail({
+    to: email,
+    subject: "Welcome to Blend Mode 🎉",
+    html: emailLayout(
+      "Your account is ready",
+      `<p>Hi ${name},</p><p>Thanks for subscribing! Your client portal is ready — sign in any time to track your websites, metrics, invoices and support.</p>`,
+    ),
+  });
 
   return { ok: true };
 }

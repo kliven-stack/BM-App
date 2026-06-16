@@ -3,6 +3,8 @@ import { PageHeader, EmptyState } from "@/components/ui";
 import AddWebsiteButton from "@/components/forms/AddWebsiteButton";
 import AddMetricButton from "@/components/forms/AddMetricButton";
 import MetricsCharts from "@/components/MetricsCharts";
+import UptimeBadge from "@/components/UptimeBadge";
+import { getLatestChecks } from "@/lib/monitoring";
 import type { Client, Website, WebsiteMetric } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -36,6 +38,11 @@ export default async function AdminWebsitesPage() {
     {},
   );
 
+  const latestChecks = await getLatestChecks(
+    supabase,
+    websites.map((w) => w.id),
+  );
+
   return (
     <div>
       <PageHeader
@@ -55,9 +62,12 @@ export default async function AdminWebsitesPage() {
             <section key={site.id}>
               <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
                 <div>
-                  <h2 className="text-lg font-semibold text-gray-900">
-                    {site.name}
-                  </h2>
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-lg font-semibold text-gray-900">
+                      {site.name}
+                    </h2>
+                    <UptimeBadge check={latestChecks[site.id]} />
+                  </div>
                   <p className="text-sm text-gray-500">
                     {site.clients?.name ?? "Unassigned"} ·{" "}
                     <a

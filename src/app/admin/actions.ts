@@ -3,6 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/auth";
+import { logActivity } from "@/lib/activity";
+import { sendEmail, emailLayout } from "@/lib/email";
 import {
   clientCreateSchema,
   clientUpdateSchema,
@@ -10,6 +12,7 @@ import {
   websiteSchema,
   metricSchema,
   ticketStatusSchema,
+  ticketReplySchema,
 } from "@/lib/validations";
 import type { ActionState } from "@/lib/action-state";
 
@@ -54,6 +57,14 @@ export async function createClientAction(
     created_by: profile.id,
   });
   if (error) return { error: error.message };
+
+  await logActivity(supabase, {
+    actor_id: profile.id,
+    actor_name: profile.name,
+    action: "created",
+    entity: "client",
+    detail: name,
+  });
 
   revalidatePath("/admin/clients");
   return {
@@ -122,9 +133,18 @@ export async function createWebsiteAction(
     return { error: parsed.error.issues[0]?.message };
   }
 
+  const profile = await requireRole("admin");
   const supabase = await createClient();
   const { error } = await supabase.from("websites").insert(parsed.data);
   if (error) return { error: error.message };
+
+  await logActivity(supabase, {
+    actor_id: profile.id,
+    actor_name: profile.name,
+    action: "added",
+    entity: "website",
+    detail: parsed.data.name,
+  });
 
   revalidatePath("/admin/websites");
   return { success: "Website added" };
@@ -180,5 +200,53 @@ export async function updateTicketStatusAction(
   if (error) return { error: error.message };
 
   revalidatePath("/admin/tickets");
+  revalidatePath(`/admin/tickets/${parsed.data.id}`);
   return { success: "Ticket updated" };
+}
+
+export async function replyTicketAdminAction(
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const profile = await requireRole("admin");
+  const parsed = ticketReplySchema.safeParse({
+    ticket_id: formData.get("ticket_id"),
+    body: formData.get("body"),
+  });
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message };
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase.from("ticket_messages").insert({
+    ticket_id: parsed.data.ticket_id,
+    author_id: profile.id,
+    author_role: "admin",
+    body: parsed.data.body,
+  });
+  if (error) return { error: error.message };
+
+  // Notify the client by email (no-op if Resend isn't configured).
+  const { data: ticket } = await supabase
+    .from("tickets")
+    .select("subject, clients(email, name)")
+    .eq("id", parsed.data.ticket_id)
+    .single();
+  const client = (ticket as unknown as {
+    subject?: string;
+    clients?: { email?: string; name?: string };
+  })?.clients;
+  if (client?.email) {
+    await sendEmail({
+      to: client.email,
+      subject: `Re: ${ticket?.subject ?? "your support ticket"}`,
+      html: emailLayout(
+        "New reply to your ticket",
+        `<p>Hi ${client.name ?? "there"},</p><p>Our team replied to your ticket:</p><blockquote style="border-left:3px solid #cb4530;padding-left:12px;color:#374151">${parsed.data.body}</blockquote><p>Sign in to your portal to continue the conversation.</p>`,
+      ),
+    });
+  }
+
+  revalidatePath(`/admin/tickets/${parsed.data.ticket_id}`);
+  return { success: "Reply sent" };
 }

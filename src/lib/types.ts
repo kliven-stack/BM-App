@@ -69,3 +69,31 @@ export interface Ticket {
   status: TicketStatus;
   created_at: string;
 }
+
+export interface TicketMessage {
+  id: string;
+  ticket_id: string;
+  author_id: string | null;
+  author_role: "admin" | "client";
+  body: string;
+  created_at: string;
+}
+
+export interface ActivityLog {
+  id: string;
+  actor_id: string | null;
+  actor_name: string | null;
+  action: string;
+  entity: string;
+  detail: string | null;
+  created_at: string;
+}
+
+export interface WebsiteCheck {
+  id: string;
+  website_id: string;
+  ok: boolean;
+  status_code: number | null;
+  response_ms: number | null;
+  checked_at: string;
+}

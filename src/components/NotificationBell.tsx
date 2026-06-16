@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
 import { Icon } from "./icons";
 
 export interface NotificationItem {
@@ -19,6 +21,25 @@ export default function NotificationBell({
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const router = useRouter();
+
+  // Best-effort live updates: if Supabase Realtime is enabled for `tickets`,
+  // refresh the page (re-running the layout's notification query) on changes.
+  // Harmless no-op if Realtime isn't enabled for the table.
+  useEffect(() => {
+    const supabase = createClient();
+    const channel = supabase
+      .channel("tickets-changes")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "tickets" },
+        () => router.refresh(),
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [router]);
 
   useEffect(() => {
     function onDown(e: MouseEvent) {

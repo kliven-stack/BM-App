@@ -2,6 +2,8 @@ import { createClient } from "@/lib/supabase/server";
 import { getCurrentClient } from "@/lib/client-data";
 import { PageHeader, EmptyState } from "@/components/ui";
 import MetricsCharts from "@/components/MetricsCharts";
+import UptimeBadge from "@/components/UptimeBadge";
+import { getLatestChecks } from "@/lib/monitoring";
 import { Icon } from "@/components/icons";
 import type { Website, WebsiteMetric } from "@/lib/types";
 
@@ -44,6 +46,8 @@ export default async function ClientWebsitesPage() {
     return acc;
   }, {});
 
+  const latestChecks = await getLatestChecks(supabase, ids);
+
   return (
     <div>
       <PageHeader
@@ -62,9 +66,12 @@ export default async function ClientWebsitesPage() {
             <section key={site.id}>
               <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <h2 className="text-lg font-semibold text-gray-900">
-                    {site.name}
-                  </h2>
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-lg font-semibold text-gray-900">
+                      {site.name}
+                    </h2>
+                    <UptimeBadge check={latestChecks[site.id]} />
+                  </div>
                   <a
                     href={site.url}
                     target="_blank"
