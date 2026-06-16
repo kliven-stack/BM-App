@@ -25,6 +25,11 @@ export default async function AdminInvoicesPage() {
       <PageHeader
         title="Invoices"
         description="Every invoice synced from Stripe across all clients."
+        action={
+          <a href="/api/export/invoices" className="btn-secondary">
+            Export CSV
+          </a>
+        }
       />
 
       <div className="mb-6 grid gap-4 sm:grid-cols-3">

@@ -3,8 +3,9 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/auth";
-import { ticketSchema, ticketReplySchema } from "@/lib/validations";
+import { ticketSchema } from "@/lib/validations";
 import { sendEmail, emailLayout } from "@/lib/email";
+import { uploadTicketAttachment } from "@/lib/attachments";
 import type { ActionState } from "@/lib/action-state";
 
 // Lets a signed-in client open a support ticket against their own account.
@@ -63,30 +64,39 @@ export async function createTicketAction(
   return { success: "Ticket submitted" };
 }
 
-// Lets a client reply on one of their own tickets.
+// Lets a client reply on one of their own tickets (optionally with a file).
 export async function replyTicketClientAction(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
   const profile = await requireRole("client");
-  const parsed = ticketReplySchema.safeParse({
-    ticket_id: formData.get("ticket_id"),
-    body: formData.get("body"),
-  });
-  if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message };
+  const ticketId = String(formData.get("ticket_id") ?? "");
+  const body = String(formData.get("body") ?? "").trim();
+  const file = formData.get("file") as File | null;
+  if (!ticketId) return { error: "Missing ticket" };
+  if (!body && (!file || file.size === 0)) {
+    return { error: "Write a message or attach a file" };
+  }
+
+  let attachment: { path: string; name: string } | null = null;
+  try {
+    attachment = await uploadTicketAttachment(ticketId, file);
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Upload failed" };
   }
 
   const supabase = await createClient();
   // RLS ensures the ticket belongs to this client.
   const { error } = await supabase.from("ticket_messages").insert({
-    ticket_id: parsed.data.ticket_id,
+    ticket_id: ticketId,
     author_id: profile.id,
     author_role: "client",
-    body: parsed.data.body,
+    body: body || "(attachment)",
+    attachment_path: attachment?.path ?? null,
+    attachment_name: attachment?.name ?? null,
   });
   if (error) return { error: error.message };
 
-  revalidatePath(`/dashboard/tickets/${parsed.data.ticket_id}`);
+  revalidatePath(`/dashboard/tickets/${ticketId}`);
   return { success: "Reply sent" };
 }

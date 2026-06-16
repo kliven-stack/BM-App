@@ -5,14 +5,16 @@ import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/auth";
 import { logActivity } from "@/lib/activity";
 import { sendEmail, emailLayout } from "@/lib/email";
+import { uploadTicketAttachment } from "@/lib/attachments";
 import {
   clientCreateSchema,
   clientUpdateSchema,
+  clientCrmSchema,
+  clientNoteSchema,
   idSchema,
   websiteSchema,
   metricSchema,
   ticketStatusSchema,
-  ticketReplySchema,
 } from "@/lib/validations";
 import type { ActionState } from "@/lib/action-state";
 
@@ -119,6 +121,63 @@ export async function deleteClientAction(
   return { success: "Client deleted" };
 }
 
+export async function updateClientCrmAction(
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  await requireRole("admin");
+  const parsed = clientCrmSchema.safeParse({
+    id: formData.get("id"),
+    status: formData.get("status"),
+    tags: formData.get("tags"),
+  });
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message };
+  }
+
+  const tags = (parsed.data.tags ?? "")
+    .split(",")
+    .map((t) => t.trim())
+    .filter(Boolean);
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("clients")
+    .update({ status: parsed.data.status, tags })
+    .eq("id", parsed.data.id);
+  if (error) return { error: error.message };
+
+  revalidatePath(`/admin/clients/${parsed.data.id}`);
+  revalidatePath("/admin/clients");
+  return { success: "Client updated" };
+}
+
+export async function addClientNoteAction(
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const profile = await requireRole("admin");
+  const parsed = clientNoteSchema.safeParse({
+    client_id: formData.get("client_id"),
+    body: formData.get("body"),
+  });
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message };
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase.from("client_notes").insert({
+    client_id: parsed.data.client_id,
+    author_id: profile.id,
+    author_name: profile.name,
+    body: parsed.data.body,
+  });
+  if (error) return { error: error.message };
+
+  revalidatePath(`/admin/clients/${parsed.data.client_id}`);
+  return { success: "Note added" };
+}
+
 export async function createWebsiteAction(
   _prev: ActionState,
   formData: FormData,
@@ -209,20 +268,29 @@ export async function replyTicketAdminAction(
   formData: FormData,
 ): Promise<ActionState> {
   const profile = await requireRole("admin");
-  const parsed = ticketReplySchema.safeParse({
-    ticket_id: formData.get("ticket_id"),
-    body: formData.get("body"),
-  });
-  if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message };
+  const ticketId = String(formData.get("ticket_id") ?? "");
+  const body = String(formData.get("body") ?? "").trim();
+  const file = formData.get("file") as File | null;
+  if (!ticketId) return { error: "Missing ticket" };
+  if (!body && (!file || file.size === 0)) {
+    return { error: "Write a message or attach a file" };
+  }
+
+  let attachment: { path: string; name: string } | null = null;
+  try {
+    attachment = await uploadTicketAttachment(ticketId, file);
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Upload failed" };
   }
 
   const supabase = await createClient();
   const { error } = await supabase.from("ticket_messages").insert({
-    ticket_id: parsed.data.ticket_id,
+    ticket_id: ticketId,
     author_id: profile.id,
     author_role: "admin",
-    body: parsed.data.body,
+    body: body || "(attachment)",
+    attachment_path: attachment?.path ?? null,
+    attachment_name: attachment?.name ?? null,
   });
   if (error) return { error: error.message };
 
@@ -230,7 +298,7 @@ export async function replyTicketAdminAction(
   const { data: ticket } = await supabase
     .from("tickets")
     .select("subject, clients(email, name)")
-    .eq("id", parsed.data.ticket_id)
+    .eq("id", ticketId)
     .single();
   const client = (ticket as unknown as {
     subject?: string;
@@ -242,11 +310,11 @@ export async function replyTicketAdminAction(
       subject: `Re: ${ticket?.subject ?? "your support ticket"}`,
       html: emailLayout(
         "New reply to your ticket",
-        `<p>Hi ${client.name ?? "there"},</p><p>Our team replied to your ticket:</p><blockquote style="border-left:3px solid #cb4530;padding-left:12px;color:#374151">${parsed.data.body}</blockquote><p>Sign in to your portal to continue the conversation.</p>`,
+        `<p>Hi ${client.name ?? "there"},</p><p>Our team replied to your ticket. Sign in to your portal to read it and continue the conversation.</p>`,
       ),
     });
   }
 
-  revalidatePath(`/admin/tickets/${parsed.data.ticket_id}`);
+  revalidatePath(`/admin/tickets/${ticketId}`);
   return { success: "Reply sent" };
 }

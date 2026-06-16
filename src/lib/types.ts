@@ -13,11 +13,24 @@ export interface Profile {
   created_at: string;
 }
 
+export type ClientStatus = "lead" | "active" | "churned";
+
 export interface Client {
   id: string;
   name: string;
   email: string;
+  status: ClientStatus;
+  tags: string[];
   created_by: string | null;
+  created_at: string;
+}
+
+export interface ClientNote {
+  id: string;
+  client_id: string;
+  author_id: string | null;
+  author_name: string | null;
+  body: string;
   created_at: string;
 }
 
@@ -76,6 +89,8 @@ export interface TicketMessage {
   author_id: string | null;
   author_role: "admin" | "client";
   body: string;
+  attachment_path: string | null;
+  attachment_name: string | null;
   created_at: string;
 }
 

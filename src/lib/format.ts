@@ -26,6 +26,8 @@ const STATUS_STYLES: Record<string, string> = {
   canceled: "bg-gray-100 text-gray-600",
   paid: "bg-green-100 text-green-700",
   unpaid: "bg-red-100 text-red-700",
+  lead: "bg-amber-100 text-amber-700",
+  churned: "bg-gray-100 text-gray-600",
 };
 
 export function statusClasses(status: string): string {

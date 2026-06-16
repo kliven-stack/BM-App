@@ -54,6 +54,18 @@ export default async function ClientWebsitesPage() {
       <PageHeader
         title="Your websites"
         description="Performance metrics for the websites we manage for you."
+        action={
+          sites.length > 0 ? (
+            <div className="flex items-center gap-2">
+              <a href="/api/export/metrics" className="btn-secondary">
+                Export CSV
+              </a>
+              <a href="/dashboard/report" className="btn-primary">
+                <Icon name="receipt" size={15} /> View report
+              </a>
+            </div>
+          ) : null
+        }
       />
 
       {sites.length === 0 ? (

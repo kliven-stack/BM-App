@@ -38,6 +38,17 @@ export type ClientUpdateInput = z.infer<typeof clientUpdateSchema>;
 
 export const idSchema = z.object({ id: z.string().uuid() });
 
+export const clientCrmSchema = z.object({
+  id: z.string().uuid(),
+  status: z.enum(["lead", "active", "churned"]),
+  tags: z.string().max(300).optional(),
+});
+
+export const clientNoteSchema = z.object({
+  client_id: z.string().uuid(),
+  body: z.string().min(1, "Note can't be empty").max(2000),
+});
+
 export const websiteSchema = z.object({
   client_id: z.string().uuid("Select a client"),
   name: z.string().min(1, "Name is required"),
