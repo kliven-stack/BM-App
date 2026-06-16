@@ -1,6 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { toast } from "sonner";
 import { Icon } from "@/components/icons";
 import {
   PLANS,
@@ -10,9 +12,17 @@ import {
 } from "@/lib/plans";
 
 export default function PricingPlans() {
+  const searchParams = useSearchParams();
   const [interval, setInterval] = useState<BillingInterval>("monthly");
   const [loading, setLoading] = useState<PlanId | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  // Friendly note when the user returns from a cancelled Stripe checkout.
+  useEffect(() => {
+    if (searchParams.get("checkout") === "cancelled") {
+      toast.info("Checkout cancelled — you weren't charged.");
+    }
+  }, [searchParams]);
 
   async function checkout(plan: PlanId) {
     setError(null);

@@ -3,12 +3,14 @@
 import { useEffect, useState } from "react";
 import Sidebar, { type NavGroup } from "./Sidebar";
 import Topbar from "./Topbar";
+import type { NotificationItem } from "./NotificationBell";
 
 interface DashboardShellProps {
   groups: NavGroup[];
   brandName: string;
   userName: string;
   userEmail: string;
+  notifications?: NotificationItem[];
   children: React.ReactNode;
 }
 
@@ -19,6 +21,7 @@ export default function DashboardShell({
   brandName,
   userName,
   userEmail,
+  notifications = [],
   children,
 }: DashboardShellProps) {
   const [open, setOpen] = useState(false);
@@ -61,6 +64,7 @@ export default function DashboardShell({
           userName={userName}
           userEmail={userEmail}
           onMenu={() => setOpen(true)}
+          notifications={notifications}
         />
         <main className="flex-1 px-4 py-6 sm:px-6 lg:px-8">{children}</main>
       </div>

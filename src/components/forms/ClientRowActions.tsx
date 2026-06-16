@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useEffect, useRef } from "react";
+import { toast } from "sonner";
 import Modal from "@/components/Modal";
 import ClientForm from "./ClientForm";
 import { deleteClientAction } from "@/app/admin/actions";
@@ -20,8 +21,9 @@ export default function ClientRowActions({ client }: { client: Client }) {
   const formRef = useRef<HTMLFormElement>(null);
 
   useEffect(() => {
-    if (state.error) alert(state.error);
-  }, [state.error]);
+    if (state.error) toast.error(state.error);
+    if (state.success) toast.success(state.success);
+  }, [state.error, state.success]);
 
   return (
     <div className="flex items-center justify-end gap-1">

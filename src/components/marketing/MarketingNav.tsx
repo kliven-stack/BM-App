@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import BrandMark from "@/components/BrandMark";
+import { Icon } from "@/components/icons";
 
 type NavLink = {
   label: string;
@@ -30,6 +31,12 @@ export default function MarketingNav({
 }) {
   const pathname = usePathname();
   const [active, setActive] = useState<string | null>(null);
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  // Close the mobile menu whenever the route changes.
+  useEffect(() => {
+    setMobileOpen(false);
+  }, [pathname]);
 
   // Scrollspy: highlight the nav item for whichever section is in view.
   useEffect(() => {
@@ -114,14 +121,70 @@ export default function MarketingNav({
               </Link>
               <Link
                 href="/pricing"
-                className="rounded-lg bg-brand-500 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-600"
+                className="hidden rounded-lg bg-brand-500 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-600 sm:block"
               >
                 Get started
               </Link>
             </>
           )}
+
+          {/* Mobile hamburger */}
+          <button
+            onClick={() => setMobileOpen((o) => !o)}
+            className="rounded-lg p-2 text-slate-200 hover:bg-white/10 md:hidden"
+            aria-label="Toggle menu"
+            aria-expanded={mobileOpen}
+          >
+            <Icon name={mobileOpen ? "plus" : "menu"} size={20} className={mobileOpen ? "rotate-45" : ""} />
+          </button>
         </div>
       </div>
+
+      {/* Mobile menu panel */}
+      {mobileOpen && (
+        <div className="border-t border-white/10 bg-slate-950/95 px-4 py-4 backdrop-blur md:hidden">
+          <nav className="flex flex-col gap-1">
+            {LINKS.map((link) => (
+              <Link
+                key={link.label}
+                href={link.href}
+                className={`rounded-lg px-3 py-2.5 text-sm font-medium ${
+                  isActive(link)
+                    ? "bg-white/5 text-brand-400"
+                    : "text-slate-300 hover:bg-white/5 hover:text-white"
+                }`}
+              >
+                {link.label}
+              </Link>
+            ))}
+            <div className="mt-2 flex flex-col gap-2 border-t border-white/10 pt-3">
+              {authed ? (
+                <Link
+                  href={homeHref}
+                  className="rounded-lg bg-brand-500 px-4 py-2.5 text-center text-sm font-semibold text-white"
+                >
+                  Dashboard
+                </Link>
+              ) : (
+                <>
+                  <Link
+                    href="/login"
+                    className="rounded-lg border border-white/15 px-4 py-2.5 text-center text-sm font-medium text-slate-200"
+                  >
+                    Log in
+                  </Link>
+                  <Link
+                    href="/pricing"
+                    className="rounded-lg bg-brand-500 px-4 py-2.5 text-center text-sm font-semibold text-white"
+                  >
+                    Get started
+                  </Link>
+                </>
+              )}
+            </div>
+          </nav>
+        </div>
+      )}
     </header>
   );
 }

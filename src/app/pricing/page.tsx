@@ -45,11 +45,8 @@ export default async function PricingPage() {
       <FloatingThemeToggle />
 
       {/* Header */}
-      <section className="relative overflow-hidden bg-slate-950 text-white">
-        <div className="pointer-events-none absolute inset-0">
-          <div className="absolute left-1/2 top-0 h-80 w-80 -translate-x-1/2 rounded-full bg-brand-500/20 blur-3xl" />
-        </div>
-        <div className="relative mx-auto max-w-3xl px-4 py-20 text-center sm:px-6">
+      <section className="bg-slate-950 text-white">
+        <div className="mx-auto max-w-3xl px-4 pb-10 pt-20 text-center sm:px-6">
           <span className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3 py-1 text-xs font-medium uppercase tracking-wider text-brand-300">
             Pricing
           </span>
@@ -64,7 +61,7 @@ export default async function PricingPage() {
       </section>
 
       {/* Plans */}
-      <section className="py-16 sm:py-20">
+      <section className="pb-16 pt-8 sm:pb-20">
         <div className="mx-auto max-w-6xl px-4 sm:px-6">
           <PricingPlans />
 

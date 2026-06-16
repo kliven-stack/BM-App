@@ -4,14 +4,16 @@ import { Icon, type IconName } from "@/components/icons";
 import MarketingNav from "@/components/marketing/MarketingNav";
 import MarketingFooter from "@/components/marketing/MarketingFooter";
 import FloatingThemeToggle from "@/components/FloatingThemeToggle";
+import Reveal from "@/components/Reveal";
+import Counter from "@/components/Counter";
 
 export const dynamic = "force-dynamic";
 
 const STATS = [
-  { value: "14+", label: "Years of expertise" },
-  { value: "500+", label: "Websites launched" },
-  { value: "30M+", label: "Visits driven" },
-  { value: "99.9%", label: "Success rate" },
+  { value: 14, suffix: "+", label: "Years of expertise" },
+  { value: 500, suffix: "+", label: "Websites launched" },
+  { value: 30, suffix: "M+", label: "Visits driven" },
+  { value: 99.9, suffix: "%", decimals: 1, label: "Success rate" },
 ];
 
 const SERVICES: { icon: IconName; title: string; desc: string }[] = [
@@ -163,7 +165,11 @@ export default async function HomePage() {
               {STATS.map((s) => (
                 <div key={s.label}>
                   <dt className="font-display text-3xl font-bold text-white">
-                    {s.value}
+                    <Counter
+                      value={s.value}
+                      suffix={s.suffix}
+                      decimals={s.decimals}
+                    />
                   </dt>
                   <dd className="mt-1 text-xs text-slate-400">{s.label}</dd>
                 </div>
@@ -230,19 +236,18 @@ export default async function HomePage() {
           </div>
 
           <div className="mt-14 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {SERVICES.map((s) => (
-              <div
-                key={s.title}
-                className="card transition-shadow hover:shadow-md"
-              >
-                <span className="icon-chip h-11 w-11">
-                  <Icon name={s.icon} size={20} />
-                </span>
-                <h3 className="mt-4 text-lg font-semibold text-gray-900">
-                  {s.title}
-                </h3>
-                <p className="mt-2 text-sm text-gray-500">{s.desc}</p>
-              </div>
+            {SERVICES.map((s, i) => (
+              <Reveal key={s.title} delay={i * 60}>
+                <div className="card h-full transition-shadow hover:shadow-md">
+                  <span className="icon-chip h-11 w-11">
+                    <Icon name={s.icon} size={20} />
+                  </span>
+                  <h3 className="mt-4 text-lg font-semibold text-gray-900">
+                    {s.title}
+                  </h3>
+                  <p className="mt-2 text-sm text-gray-500">{s.desc}</p>
+                </div>
+              </Reveal>
             ))}
           </div>
         </div>
@@ -268,16 +273,18 @@ export default async function HomePage() {
           </div>
 
           <div className="mt-14 grid gap-6 md:grid-cols-3">
-            {VALUES.map((v) => (
-              <div key={v.title} className="card">
-                <span className="icon-chip h-11 w-11">
-                  <Icon name={v.icon} size={20} />
-                </span>
-                <h3 className="mt-4 text-lg font-semibold text-gray-900">
-                  {v.title}
-                </h3>
-                <p className="mt-2 text-sm text-gray-500">{v.desc}</p>
-              </div>
+            {VALUES.map((v, i) => (
+              <Reveal key={v.title} delay={i * 80}>
+                <div className="card h-full">
+                  <span className="icon-chip h-11 w-11">
+                    <Icon name={v.icon} size={20} />
+                  </span>
+                  <h3 className="mt-4 text-lg font-semibold text-gray-900">
+                    {v.title}
+                  </h3>
+                  <p className="mt-2 text-sm text-gray-500">{v.desc}</p>
+                </div>
+              </Reveal>
             ))}
           </div>
         </div>
@@ -296,11 +303,12 @@ export default async function HomePage() {
           </div>
 
           <div className="mt-14 grid gap-6 md:grid-cols-3">
-            {TESTIMONIALS.map((t) => (
-              <figure key={t.name} className="card flex flex-col">
+            {TESTIMONIALS.map((t, i) => (
+              <Reveal key={t.name} delay={i * 80} className="h-full">
+              <figure className="card flex h-full flex-col">
                 <div className="flex gap-1 text-brand-500">
-                  {Array.from({ length: 5 }).map((_, i) => (
-                    <Icon key={i} name="star" size={16} />
+                  {Array.from({ length: 5 }).map((_, si) => (
+                    <Icon key={si} name="star" size={16} />
                   ))}
                 </div>
                 <blockquote className="mt-4 flex-1 text-sm text-gray-600">
@@ -321,6 +329,7 @@ export default async function HomePage() {
                   </span>
                 </figcaption>
               </figure>
+              </Reveal>
             ))}
           </div>
         </div>
