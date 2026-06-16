@@ -63,6 +63,13 @@ export const subscriptionSchema = z.object({
 });
 export type SubscriptionInput = z.infer<typeof subscriptionSchema>;
 
+// Admin creates a subscription by picking a live Stripe price.
+export const subscriptionCreateSchema = z.object({
+  client_id: z.string().uuid("Select a client"),
+  email: z.string().email(),
+  price_id: z.string().min(1, "Select a plan"),
+});
+
 export const ticketSchema = z.object({
   subject: z.string().min(1, "Subject is required").max(200),
   message: z.string().min(1, "Message is required").max(5000),

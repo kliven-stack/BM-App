@@ -2,35 +2,34 @@ import { NextResponse } from "next/server";
 import { getStripe } from "@/lib/stripe";
 import { createClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/auth";
-import { subscriptionSchema } from "@/lib/validations";
+import { subscriptionCreateSchema } from "@/lib/validations";
 
 // POST /api/stripe/create-subscription
 // Admin-only. Creates (or reuses) a Stripe customer, opens a subscription for
-// the configured price, and persists the IDs against the client. Invoice rows
-// are populated later by the webhook.
+// the selected Stripe price, and persists the IDs against the client. Invoice
+// rows are populated later by the webhook.
 export async function POST(request: Request) {
   try {
     await requireRole("admin");
 
     const json = await request.json();
-    const parsed = subscriptionSchema.safeParse(json);
+    const parsed = subscriptionCreateSchema.safeParse(json);
     if (!parsed.success) {
       return NextResponse.json(
         { error: parsed.error.issues[0]?.message },
         { status: 400 },
       );
     }
-    const { client_id, email, price, billing_cycle } = parsed.data;
-
-    const priceId = process.env.STRIPE_DEFAULT_PRICE_ID;
-    if (!priceId) {
-      return NextResponse.json(
-        { error: "STRIPE_DEFAULT_PRICE_ID is not configured" },
-        { status: 500 },
-      );
-    }
+    const { client_id, email, price_id } = parsed.data;
 
     const stripe = getStripe();
+
+    // Look up the chosen price to record amount + interval locally.
+    const stripePrice = await stripe.prices.retrieve(price_id);
+    const amount = (stripePrice.unit_amount ?? 0) / 100;
+    const billing_cycle =
+      stripePrice.recurring?.interval === "year" ? "yearly" : "monthly";
+
     const supabase = await createClient();
 
     // Reuse an existing Stripe customer for this client if we have one.
@@ -53,7 +52,7 @@ export async function POST(request: Request) {
 
     const subscription = await stripe.subscriptions.create({
       customer: customerId,
-      items: [{ price: priceId }],
+      items: [{ price: price_id }],
       payment_behavior: "default_incomplete",
       collection_method: "charge_automatically",
       expand: ["latest_invoice"],
@@ -66,7 +65,7 @@ export async function POST(request: Request) {
       stripe_customer_id: customerId,
       stripe_subscription_id: subscription.id,
       status: subscription.status,
-      price,
+      price: amount,
       billing_cycle,
     });
     if (error) {

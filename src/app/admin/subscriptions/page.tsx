@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { PageHeader, Table, EmptyState, StatusBadge } from "@/components/ui";
 import AddSubscriptionButton from "@/components/forms/AddSubscriptionButton";
+import { listStripePrices } from "@/lib/stripe-prices";
 import { formatCurrency, formatDate } from "@/lib/format";
 import type { Client, Subscription } from "@/lib/types";
 
@@ -9,12 +10,13 @@ export const dynamic = "force-dynamic";
 export default async function AdminSubscriptionsPage() {
   const supabase = await createClient();
 
-  const [clientsRes, subsRes] = await Promise.all([
+  const [clientsRes, subsRes, prices] = await Promise.all([
     supabase.from("clients").select("id, name, email").order("name"),
     supabase
       .from("subscriptions")
       .select("*, clients(name)")
       .order("created_at", { ascending: false }),
+    listStripePrices(),
   ]);
 
   const clients = (clientsRes.data as Pick<Client, "id" | "name" | "email">[]) ?? [];
@@ -27,7 +29,7 @@ export default async function AdminSubscriptionsPage() {
       <PageHeader
         title="Subscriptions"
         description="Stripe subscriptions per client."
-        action={<AddSubscriptionButton clients={clients} />}
+        action={<AddSubscriptionButton clients={clients} prices={prices} />}
       />
 
       {subs.length === 0 ? (

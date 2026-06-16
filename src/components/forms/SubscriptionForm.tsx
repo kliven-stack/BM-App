@@ -2,18 +2,21 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { subscriptionSchema } from "@/lib/validations";
+import { toast } from "sonner";
 import SubmitButton from "@/components/SubmitButton";
 import type { Client } from "@/lib/types";
+import type { PriceOption } from "@/lib/stripe-prices";
 
 // Drives the Stripe subscription creation flow from the admin UI. It posts to
 // /api/stripe/create-subscription, which creates the customer + subscription
-// in Stripe and persists the IDs.
+// in Stripe (using the chosen live price) and persists the IDs.
 export default function SubscriptionForm({
   clients,
+  prices,
   onDone,
 }: {
   clients: Pick<Client, "id" | "name" | "email">[];
+  prices: PriceOption[];
   onDone?: () => void;
 }) {
   const router = useRouter();
@@ -23,18 +26,15 @@ export default function SubscriptionForm({
   async function handleSubmit(formData: FormData) {
     setError(null);
     const clientId = String(formData.get("client_id"));
+    const priceId = String(formData.get("price_id"));
     const client = clients.find((c) => c.id === clientId);
 
-    const payload = {
-      client_id: clientId,
-      email: client?.email ?? "",
-      price: Number(formData.get("price")),
-      billing_cycle: String(formData.get("billing_cycle")),
-    };
-
-    const parsed = subscriptionSchema.safeParse(payload);
-    if (!parsed.success) {
-      setError(parsed.error.issues[0]?.message ?? "Invalid input");
+    if (!clientId || !client) {
+      setError("Select a client");
+      return;
+    }
+    if (!priceId) {
+      setError("Select a plan");
       return;
     }
 
@@ -43,10 +43,15 @@ export default function SubscriptionForm({
       const res = await fetch("/api/stripe/create-subscription", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(parsed.data),
+        body: JSON.stringify({
+          client_id: clientId,
+          email: client.email,
+          price_id: priceId,
+        }),
       });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error ?? "Request failed");
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Request failed");
+      toast.success("Subscription created");
       router.refresh();
       onDone?.();
     } catch (err) {
@@ -71,46 +76,36 @@ export default function SubscriptionForm({
           ))}
         </select>
       </div>
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label className="label" htmlFor="price">
-            Price
-          </label>
-          <input
-            id="price"
-            name="price"
-            type="number"
-            step="0.01"
-            min="0"
-            className="input"
-            defaultValue={49}
-            required
-          />
-        </div>
-        <div>
-          <label className="label" htmlFor="billing_cycle">
-            Billing cycle
-          </label>
-          <select
-            id="billing_cycle"
-            name="billing_cycle"
-            className="input"
-            defaultValue="monthly"
-          >
-            <option value="monthly">Monthly</option>
-            <option value="yearly">Yearly</option>
+
+      <div>
+        <label className="label" htmlFor="price_id">
+          Plan
+        </label>
+        {prices.length === 0 ? (
+          <p className="rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-700 dark:bg-amber-500/10 dark:text-amber-300">
+            No Stripe plans found. Create products & prices in your Stripe
+            dashboard, then reopen this form.
+          </p>
+        ) : (
+          <select id="price_id" name="price_id" className="input" required>
+            <option value="">Select a plan…</option>
+            {prices.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.label}
+              </option>
+            ))}
           </select>
-        </div>
+        )}
       </div>
 
       {error && (
-        <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
+        <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700 dark:bg-red-500/10 dark:text-red-300">
           {error}
         </p>
       )}
       <p className="text-xs text-gray-400">
-        Uses the Stripe test customer + your <code>STRIPE_DEFAULT_PRICE_ID</code>.
-        Invoices sync back automatically via the webhook.
+        Plans are pulled live from Stripe. The client is billed for the selected
+        plan and invoices sync back to the portal automatically.
       </p>
       <SubmitButton>
         {loading ? "Creating…" : "Create subscription"}
