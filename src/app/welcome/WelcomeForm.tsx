@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import PasswordInput from "@/components/PasswordInput";
+import LoadingSplash from "@/components/LoadingSplash";
 import { completeSignup } from "./actions";
 
 export default function WelcomeForm({
@@ -19,6 +20,7 @@ export default function WelcomeForm({
   const [confirm, setConfirm] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [redirecting, setRedirecting] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -46,12 +48,17 @@ export default function WelcomeForm({
       email,
       password,
     });
+    setRedirecting(true);
     if (signInError) {
       router.replace("/login");
       return;
     }
     router.replace("/dashboard");
     router.refresh();
+  }
+
+  if (redirecting) {
+    return <LoadingSplash label="Setting up your portal…" />;
   }
 
   return (

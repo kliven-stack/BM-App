@@ -4,7 +4,8 @@ import AddWebsiteButton from "@/components/forms/AddWebsiteButton";
 import AddMetricButton from "@/components/forms/AddMetricButton";
 import MetricsCharts from "@/components/MetricsCharts";
 import UptimeBadge from "@/components/UptimeBadge";
-import { getLatestChecks } from "@/lib/monitoring";
+import UptimeChart from "@/components/UptimeChart";
+import { getChecksHistory } from "@/lib/monitoring";
 import type { Client, Website, WebsiteMetric } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -38,7 +39,7 @@ export default async function AdminWebsitesPage() {
     {},
   );
 
-  const latestChecks = await getLatestChecks(
+  const checkHistory = await getChecksHistory(
     supabase,
     websites.map((w) => w.id),
   );
@@ -66,7 +67,7 @@ export default async function AdminWebsitesPage() {
                     <h2 className="text-lg font-semibold text-gray-900">
                       {site.name}
                     </h2>
-                    <UptimeBadge check={latestChecks[site.id]} />
+                    <UptimeBadge check={checkHistory[site.id]?.at(-1)} />
                   </div>
                   <p className="text-sm text-gray-500">
                     {site.clients?.name ?? "Unassigned"} ·{" "}
@@ -83,6 +84,11 @@ export default async function AdminWebsitesPage() {
                 <AddMetricButton websiteId={site.id} websiteName={site.name} />
               </div>
               <MetricsCharts metrics={metricsByWebsite[site.id] ?? []} />
+              {checkHistory[site.id]?.length ? (
+                <div className="mt-6">
+                  <UptimeChart checks={checkHistory[site.id]} />
+                </div>
+              ) : null}
             </section>
           ))}
         </div>

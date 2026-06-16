@@ -3,7 +3,8 @@ import { getCurrentClient } from "@/lib/client-data";
 import { PageHeader, EmptyState } from "@/components/ui";
 import MetricsCharts from "@/components/MetricsCharts";
 import UptimeBadge from "@/components/UptimeBadge";
-import { getLatestChecks } from "@/lib/monitoring";
+import UptimeChart from "@/components/UptimeChart";
+import { getChecksHistory } from "@/lib/monitoring";
 import { Icon } from "@/components/icons";
 import type { Website, WebsiteMetric } from "@/lib/types";
 
@@ -46,7 +47,7 @@ export default async function ClientWebsitesPage() {
     return acc;
   }, {});
 
-  const latestChecks = await getLatestChecks(supabase, ids);
+  const checkHistory = await getChecksHistory(supabase, ids);
 
   return (
     <div>
@@ -70,7 +71,7 @@ export default async function ClientWebsitesPage() {
                     <h2 className="text-lg font-semibold text-gray-900">
                       {site.name}
                     </h2>
-                    <UptimeBadge check={latestChecks[site.id]} />
+                    <UptimeBadge check={checkHistory[site.id]?.at(-1)} />
                   </div>
                   <a
                     href={site.url}
@@ -91,6 +92,11 @@ export default async function ClientWebsitesPage() {
                 </a>
               </div>
               <MetricsCharts metrics={byWebsite[site.id] ?? []} />
+              {checkHistory[site.id]?.length ? (
+                <div className="mt-6">
+                  <UptimeChart checks={checkHistory[site.id]} />
+                </div>
+              ) : null}
             </section>
           ))}
         </div>

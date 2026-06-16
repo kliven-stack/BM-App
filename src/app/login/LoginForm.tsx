@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { loginSchema } from "@/lib/validations";
 import PasswordInput from "@/components/PasswordInput";
+import LoadingSplash from "@/components/LoadingSplash";
 
 type Mode = "login" | "reset";
 
@@ -20,6 +21,7 @@ export default function LoginForm() {
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [redirecting, setRedirecting] = useState(false);
 
   function switchMode(next: Mode) {
     setMode(next);
@@ -70,15 +72,19 @@ export default function LoginForm() {
       });
       if (error) throw error;
 
-      // Land on the dashboard; middleware routes admins to /admin.
+      // Keep the branded splash up while the dashboard loads.
+      setRedirecting(true);
       const redirectedFrom = params.get("redirectedFrom");
       router.replace(redirectedFrom || "/dashboard");
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");
-    } finally {
       setLoading(false);
     }
+  }
+
+  if (redirecting) {
+    return <LoadingSplash label="Loading your dashboard…" />;
   }
 
   return (
