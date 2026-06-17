@@ -7,7 +7,10 @@ import type { NavGroup } from "@/components/Sidebar";
 const GROUPS: NavGroup[] = [
   {
     label: "Workspace",
-    items: [{ href: "/admin", label: "Overview", icon: "grid" }],
+    items: [
+      { href: "/admin", label: "Overview", icon: "grid" },
+      { href: "/admin/revenue", label: "Revenue", icon: "star" },
+    ],
   },
   {
     label: "Manage",

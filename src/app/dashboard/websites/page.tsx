@@ -4,6 +4,7 @@ import { PageHeader, EmptyState } from "@/components/ui";
 import MetricsCharts from "@/components/MetricsCharts";
 import UptimeBadge from "@/components/UptimeBadge";
 import UptimeChart from "@/components/UptimeChart";
+import AiInsight from "@/components/AiInsight";
 import { getChecksHistory } from "@/lib/monitoring";
 import { Icon } from "@/components/icons";
 import type { Website, WebsiteMetric } from "@/lib/types";
@@ -109,6 +110,9 @@ export default async function ClientWebsitesPage() {
                   <UptimeChart checks={checkHistory[site.id]} />
                 </div>
               ) : null}
+              <div className="mt-6">
+                <AiInsight websiteId={site.id} />
+              </div>
             </section>
           ))}
         </div>

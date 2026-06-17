@@ -5,6 +5,7 @@ import AddMetricButton from "@/components/forms/AddMetricButton";
 import MetricsCharts from "@/components/MetricsCharts";
 import UptimeBadge from "@/components/UptimeBadge";
 import UptimeChart from "@/components/UptimeChart";
+import AiInsight from "@/components/AiInsight";
 import { getChecksHistory } from "@/lib/monitoring";
 import type { Client, Website, WebsiteMetric } from "@/lib/types";
 
@@ -89,6 +90,9 @@ export default async function AdminWebsitesPage() {
                   <UptimeChart checks={checkHistory[site.id]} />
                 </div>
               ) : null}
+              <div className="mt-6">
+                <AiInsight websiteId={site.id} />
+              </div>
             </section>
           ))}
         </div>

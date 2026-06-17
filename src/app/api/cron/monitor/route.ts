@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/server";
+import { sendEmail, emailLayout } from "@/lib/email";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -20,12 +21,28 @@ export async function GET(request: Request) {
   const supabase = createAdminClient();
   const { data: websites, error } = await supabase
     .from("websites")
-    .select("id, url");
+    .select("id, url, name, clients(email)");
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  const sites = (websites as { id: string; url: string }[]) ?? [];
+  const sites = (websites as {
+    id: string;
+    url: string;
+    name: string;
+    clients?: { email?: string };
+  }[]) ?? [];
+
+  // Previous status per site, so we can alert only on up→down transitions.
+  const { data: prevChecks } = await supabase
+    .from("website_checks")
+    .select("website_id, ok, checked_at")
+    .order("checked_at", { ascending: false })
+    .limit(500);
+  const prevOk: Record<string, boolean> = {};
+  for (const c of (prevChecks as { website_id: string; ok: boolean }[]) ?? []) {
+    if (!(c.website_id in prevOk)) prevOk[c.website_id] = c.ok;
+  }
 
   const checks = await Promise.allSettled(
     sites.map(async (site) => {
@@ -58,11 +75,46 @@ export async function GET(request: Request) {
 
   const rows = checks
     .filter((c) => c.status === "fulfilled")
-    .map((c) => (c as PromiseFulfilledResult<unknown>).value);
+    .map(
+      (c) =>
+        (c as PromiseFulfilledResult<{
+          website_id: string;
+          ok: boolean;
+          status_code: number | null;
+          response_ms: number;
+        }>).value,
+    );
 
   if (rows.length) {
     await supabase.from("website_checks").insert(rows);
   }
 
-  return NextResponse.json({ checked: rows.length });
+  // Alert on sites that just went down (were up before, now failing).
+  const notify = process.env.ADMIN_NOTIFY_EMAIL;
+  let alerts = 0;
+  for (const row of rows) {
+    const wasUp = prevOk[row.website_id];
+    if (wasUp === true && row.ok === false) {
+      const site = sites.find((s) => s.id === row.website_id);
+      if (!site) continue;
+      const recipients = [notify, site.clients?.email].filter(
+        (e): e is string => Boolean(e),
+      );
+      for (const to of recipients) {
+        await sendEmail({
+          to,
+          subject: `🔴 ${site.name} is down`,
+          html: emailLayout(
+            "Website downtime detected",
+            `<p><strong>${site.name}</strong> (${site.url}) appears to be down${
+              row.status_code ? ` (HTTP ${row.status_code})` : ""
+            }.</p><p>Our monitor will keep checking and you'll see it recover in the portal.</p>`,
+          ),
+        });
+        alerts++;
+      }
+    }
+  }
+
+  return NextResponse.json({ checked: rows.length, alerts });
 }
