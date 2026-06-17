@@ -187,6 +187,7 @@ export async function createWebsiteAction(
     client_id: formData.get("client_id"),
     name: formData.get("name"),
     url: formData.get("url"),
+    plausible_domain: formData.get("plausible_domain") ?? undefined,
   });
   if (!parsed.success) {
     return { error: parsed.error.issues[0]?.message };
@@ -194,7 +195,16 @@ export async function createWebsiteAction(
 
   const profile = await requireRole("admin");
   const supabase = await createClient();
-  const { error } = await supabase.from("websites").insert(parsed.data);
+
+  // Only include plausible_domain when provided, so inserts still work before
+  // the 0004 migration adds the column.
+  const { plausible_domain, ...rest } = parsed.data;
+  const insertRow: Record<string, unknown> = { ...rest };
+  if (plausible_domain && plausible_domain.trim()) {
+    insertRow.plausible_domain = plausible_domain.trim();
+  }
+
+  const { error } = await supabase.from("websites").insert(insertRow);
   if (error) return { error: error.message };
 
   await logActivity(supabase, {

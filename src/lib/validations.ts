@@ -53,6 +53,7 @@ export const websiteSchema = z.object({
   client_id: z.string().uuid("Select a client"),
   name: z.string().min(1, "Name is required"),
   url: z.string().url("Enter a valid URL (https://…)"),
+  plausible_domain: z.string().max(200).optional(),
 });
 export type WebsiteInput = z.infer<typeof websiteSchema>;
 

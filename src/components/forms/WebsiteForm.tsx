@@ -56,6 +56,22 @@ export default function WebsiteForm({
           required
         />
       </div>
+      <div>
+        <label className="label" htmlFor="plausible_domain">
+          Plausible domain{" "}
+          <span className="font-normal text-gray-400">(optional)</span>
+        </label>
+        <input
+          id="plausible_domain"
+          name="plausible_domain"
+          placeholder="example.com"
+          className="input"
+        />
+        <p className="mt-1 text-xs text-gray-400">
+          Set this (and PLAUSIBLE_API_KEY) to pull real traffic instead of
+          generated metrics.
+        </p>
+      </div>
       <FormFeedback state={state} />
       <SubmitButton>Add website</SubmitButton>
     </form>

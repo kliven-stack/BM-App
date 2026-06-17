@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/server";
-import { generateMetric, recentDates } from "@/lib/metrics-generator";
+import {
+  generateMetric,
+  recentDates,
+  type GeneratedMetric,
+} from "@/lib/metrics-generator";
+import { fetchPlausibleMetrics } from "@/lib/plausible";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -20,24 +25,44 @@ export async function GET(request: Request) {
   }
 
   const supabase = createAdminClient();
-  const { data: websites, error } = await supabase
-    .from("websites")
-    .select("id");
+  // plausible_domain may not exist pre-migration; select("*") is safe.
+  const { data: websites, error } = await supabase.from("websites").select("*");
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
+  const sites = (websites as { id: string; plausible_domain?: string }[]) ?? [];
   const dates = recentDates(30);
-  const rows = ((websites as { id: string }[]) ?? []).flatMap((w) =>
-    dates.map((d) => generateMetric(w.id, d)),
-  );
+  const rows: GeneratedMetric[] = [];
+  let plausibleSites = 0;
+
+  for (const w of sites) {
+    // Use real Plausible data when configured; otherwise generate.
+    let real: GeneratedMetric[] | null = null;
+    if (w.plausible_domain) {
+      real = await fetchPlausibleMetrics(w.id, w.plausible_domain);
+      if (real?.length) plausibleSites++;
+    }
+    if (real?.length) {
+      // Real rows should overwrite generated ones → upsert without ignore.
+      await supabase
+        .from("website_metrics")
+        .upsert(real, { onConflict: "website_id,date" });
+    } else {
+      rows.push(...dates.map((d) => generateMetric(w.id, d)));
+    }
+  }
 
   if (rows.length) {
-    // ignoreDuplicates keeps any existing (incl. manually-entered) rows.
+    // ignoreDuplicates keeps any existing (incl. manual or real) rows.
     await supabase
       .from("website_metrics")
       .upsert(rows, { onConflict: "website_id,date", ignoreDuplicates: true });
   }
 
-  return NextResponse.json({ websites: websites?.length ?? 0, rows: rows.length });
+  return NextResponse.json({
+    websites: sites.length,
+    plausible: plausibleSites,
+    generated: rows.length,
+  });
 }

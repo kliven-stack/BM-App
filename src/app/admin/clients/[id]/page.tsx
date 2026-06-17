@@ -74,7 +74,7 @@ export default async function AdminClientDetail({
       </div>
 
       {client.tags.length > 0 && (
-        <div className="mb-6 flex flex-wrap gap-2">
+        <div className="mb-4 flex flex-wrap gap-2">
           {client.tags.map((t) => (
             <span
               key={t}
@@ -84,6 +84,20 @@ export default async function AdminClientDetail({
             </span>
           ))}
         </div>
+      )}
+
+      {(client as { public_token?: string }).public_token && (
+        <p className="mb-6 text-xs text-gray-400">
+          Public status page:{" "}
+          <a
+            href={`/status/${(client as { public_token?: string }).public_token}`}
+            target="_blank"
+            rel="noreferrer"
+            className="text-brand-600 hover:underline"
+          >
+            /status/{(client as { public_token?: string }).public_token}
+          </a>
+        </p>
       )}
 
       <div className="mb-6 grid gap-4 sm:grid-cols-3">
