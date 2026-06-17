@@ -35,8 +35,9 @@ export function StatCard({
   icon?: IconName;
 }) {
   return (
-    <div className="card">
-      <div className="flex items-center gap-3">
+    <div className="card relative overflow-hidden transition-shadow hover:shadow-md">
+      <div className="pointer-events-none absolute -right-6 -top-6 h-20 w-20 rounded-full bg-brand-500/10 blur-2xl" />
+      <div className="relative flex items-center gap-3">
         {icon && (
           <span className="icon-chip">
             <Icon name={icon} size={18} />
@@ -44,8 +45,8 @@ export function StatCard({
         )}
         <p className="text-sm font-medium text-gray-500">{label}</p>
       </div>
-      <p className="mt-3 text-3xl font-bold text-gray-900">{value}</p>
-      {hint && <p className="mt-1 text-xs text-gray-400">{hint}</p>}
+      <p className="relative mt-3 text-3xl font-bold text-gray-900">{value}</p>
+      {hint && <p className="relative mt-1 text-xs text-gray-400">{hint}</p>}
     </div>
   );
 }
